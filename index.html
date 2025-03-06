@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image to Text Converter</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #image-container {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+    #image-preview {
+      max-width: 100%;
+      height: auto;
+    }
+    .button-container {
+      margin-top: 20px;
+    }
+    .button-container button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .button-container button:hover {
+      background-color: #0056b3;
+    }
+    #text-output {
+      margin-top: 20px;
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>Image to Text Converter</h1>
+  <input type="file" id="image-input" accept="image/*" />
+  <div id="image-container">
+    <img id="image-preview" src="" alt="Uploaded Image" style="display: none;">
+  </div>
+  <div class="button-container">
+    <button id="crop-btn">Crop Image</button>
+    <button id="convert-btn" disabled>Convert to Text</button>
+    <button id="copy-btn" disabled>Copy Text</button>
+    <button id="download-btn" disabled>Download Text</button>
+  </div>
+  <textarea id="text-output" placeholder="Extracted text will appear here..." readonly></textarea>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.5/dist/tesseract.min.js"></script>
+  <script>
+    let cropper;
+
+    // Handle image upload
+    document.getElementById('image-input').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const imagePreview = document.getElementById('image-preview');
+          imagePreview.src = e.target.result;
+          imagePreview.style.display = 'block';
+
+          // Initialize Cropper.js
+          if (cropper) {
+            cropper.destroy();
+          }
+          cropper = new Cropper(imagePreview, {
+            aspectRatio: NaN, // Free aspect ratio (adjustable length and breadth)
+            viewMode: 1,
+            autoCropArea: 1,
+            responsive: true,
+            checkCrossOrigin: false,
+          });
+
+          // Enable buttons
+          document.getElementById('convert-btn').disabled = false;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Please upload a valid image file.');
+      }
+    });
+
+    // Handle crop button click
+    document.getElementById('crop-btn').addEventListener('click', function() {
+      if (cropper) {
+        const croppedCanvas = cropper.getCroppedCanvas({
+          width: cropper.getData().width,
+          height: cropper.getData().height,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high', // Ensure HD quality
+        });
+
+        // Display the cropped image
+        const imagePreview = document.getElementById('image-preview');
+        imagePreview.src = croppedCanvas.toDataURL('image/png', 1.0); // HD quality
+        cropper.replace(imagePreview.src);
+      }
+    });
+
+    // Handle convert to text button click
+    document.getElementById('convert-btn').addEventListener('click', async function() {
+      if (cropper) {
+        const croppedCanvas = cropper.getCroppedCanvas({
+          width: cropper.getData().width,
+          height: cropper.getData().height,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high', // Ensure HD quality
+        });
+
+        // Convert canvas to image data URL
+        const imageDataUrl = croppedCanvas.toDataURL('image/png', 1.0);
+
+        // Use Tesseract.js to extract text
+        const textOutput = document.getElementById('text-output');
+        textOutput.value = 'Extracting text... Please wait.';
+
+        const { data: { text } } = await Tesseract.recognize(imageDataUrl, 'eng', {
+          logger: (info) => console.log(info), // Optional: Log progress
+        });
+
+        textOutput.value = text;
+
+        // Enable copy and download buttons
+        document.getElementById('copy-btn').disabled = false;
+        document.getElementById('download-btn').disabled = false;
+      }
+    });
+
+    // Handle copy text button click
+    document.getElementById('copy-btn').addEventListener('click', function() {
+      const textOutput = document.getElementById('text-output');
+      textOutput.select();
+      document.execCommand('copy');
+      alert('Text copied to clipboard!');
+    });
+
+    // Handle download text button click
+    document.getElementById('download-btn').addEventListener('click', function() {
+      const textOutput = document.getElementById('text-output');
+      const blob = new Blob([textOutput.value], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'extracted-text.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  </script>
+</body>
+</html>
