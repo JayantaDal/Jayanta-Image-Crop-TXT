@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image to Text Converter</title>
+  <title>Image to Text Converter (English + Odia)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
   <style>
     body {
@@ -46,7 +46,7 @@
   </style>
 </head>
 <body>
-  <h1>Image to Text Converter</h1>
+  <h1>Image to Text Converter (English + Odia)</h1>
   <input type="file" id="image-input" accept="image/*" />
   <div id="image-container">
     <img id="image-preview" src="" alt="Uploaded Image" style="display: none;">
@@ -129,7 +129,8 @@
         const textOutput = document.getElementById('text-output');
         textOutput.value = 'Extracting text... Please wait.';
 
-        const { data: { text } } = await Tesseract.recognize(imageDataUrl, 'eng', {
+        // Initialize Tesseract.js with both English and Odia languages
+        const { data: { text } } = await Tesseract.recognize(imageDataUrl, 'eng+ori', {
           logger: (info) => console.log(info), // Optional: Log progress
         });
 
